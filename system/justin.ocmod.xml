@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+    <name>JustIn</name>
+    <author>Alex JustIn</author>
+    <link>http://dm.com/</link>
+
+    <file path="catalog/view/theme/*/template/checkout/shipping_method.tpl">
+        <operation>
+            <search><![CDATA[<?php if ($error_warning) { ?>]]></search>
+            <add position="before"><![CDATA[
+<script>
+    $(document).ready(function() {
+
+        var justin_shipping = $("input[value='justin.justin']");
+        $.ajax({
+            url: 'index.php?route=extension/shipping/justin/get_departments_like_city',
+            type: 'POST',
+            dataType: 'json',
+            data: 'work=start',
+            success: function(json) {
+                if(json['success']){
+                    justin_shipping.parent().after(json['html']);
+                }
+            }
+        });
+
+        $(document).on('click','#select_from_all_departments',function(){
+            if(this.checked) {
+                $('.wrap_select_all_departments').slideDown();
+                $('.wrap_select_departments').slideUp();
+            }else{
+                $('.wrap_select_all_departments').slideUp();
+                $('.wrap_select_departments').slideDown();
+            }
+        });
+
+    });
+</script>
+			]]></add>
+        </operation>
+    </file>
+    <file path="catalog/view/theme/*/template/checkout/checkout.tpl">
+        <operation>
+            <search><![CDATA[$(document).delegate('#button-shipping-method', 'click', function() {]]></search>
+            <add position="after"><![CDATA[
+        var justin_departments = document.getElementById('justin_department');
+        var justin_departments_all = document.getElementById('justin_departments_all');
+        var select_from_all_departments = document.getElementById('select_from_all_departments');
+
+        if(justin_departments){
+
+            if(justin_departments_all && select_from_all_departments){
+                var jq_select_from_all_departments = $('#select_from_all_departments');
+                if(jq_select_from_all_departments.prop('checked')) {
+                    var check = 'check';
+                }else{
+                    var check = 'no_check';
+                }
+
+            }else{
+                var check = 'no_check';
+            }
+
+            var jq_justin_departments = $('#justin_department').val();
+            var jq_justin_departments_all = $('#justin_departments_all').val();
+
+            $.ajax({
+                url: 'index.php?route=extension/shipping/justin/set_department',
+                type: 'POST',
+                dataType: 'json',
+                data: {justin_departments:jq_justin_departments,justin_departments_all:jq_justin_departments_all,check:check},
+                success: function(json) {
+                    if(json['success']){
+                        justin_shipping.parent().after(json['html']);
+                    }
+                }
+            });
+
+        }
+			]]></add>
+        </operation>
+    </file>
+
+    <file path="catalog/controller/checkout/success.php">
+        <operation>
+            <search><![CDATA[unset($this->session->data['shipping_method']);]]></search>
+            <add position="before"><![CDATA[
+            $this->load->controller('extension/shipping/justin/order_final');
+            unset($this->session->data['justin_shipping']);
+			]]></add>
+        </operation>
+    </file>
+
+    <file path="admin/controller/sale/order.php">
+        <operation>
+            <search><![CDATA[$this->response->setOutput($this->load->view('sale/order_info', $data));]]></search>
+            <add position="before"><![CDATA[
+            $justin_data = array(
+                'order_id' => $data['order_id'],
+                'order_status_id' => $data['order_status_id'],
+                'shipping_method' => $data['shipping_method'],
+                'order_statuses' => $data['order_statuses']
+            );
+            $data['justin_shipping'] = $this->load->controller('extension/shipping/justin/orderInfo', $justin_data);
+			]]></add>
+        </operation>
+    </file>
+
+    <file path="admin/view/template/sale/order_info.tpl">
+        <operation>
+            <search><![CDATA[<h3 class="panel-title"><i class="fa fa-comment-o"></i> <?php echo $text_history; ?></h3>]]></search>
+            <add position="before" offset="2"><![CDATA[
+            <?php echo $justin_shipping['html']; ?>
+			]]></add>
+        </operation>
+        <operation>
+            <search><![CDATA[<?php echo $footer; ?> ]]></search>
+            <add position="after"><![CDATA[
+            <?php echo $justin_shipping['script']; ?>
+			]]></add>
+        </operation>
+    </file>
+
+</modification>
